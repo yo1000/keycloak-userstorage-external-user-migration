@@ -26,10 +26,3 @@ services:
       - "/opt/keycloak-userstorage-external-user-api-stub.jar"
     ports:
       - 8081:8080
-#  keycloak-config-script:
-#    image: cfmanteiga/alpine-bash-curl-jq
-#    container_name: keycloak-config-script
-#    volumes:
-#      - ./kcconf.sh:/tmp/kcconf.sh
-#    entrypoint: >
-#      sh -c "sh /tmp/kcconf.sh"
