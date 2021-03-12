@@ -21,41 +21,41 @@ class StubUserController {
                 "RRRRRRRR-RRRR-4RRR-rRRR-aaaaaaaaaaaa".let {
                     it to User(
                             id = it,
-                            username = "aaaa",
-                            email = "aaaa@localhost",
-                            firstName = "aa",
-                            lastName = "AA",
-                            password = "aaaa1111"
+                            username = "alice",
+                            email = "alice@localhost",
+                            firstName = "Alice",
+                            lastName = "Liddell",
+                            password = "alice1234"
                     )
                 },
                 "RRRRRRRR-RRRR-4RRR-rRRR-bbbbbbbbbbbb".let {
                     it to User(
                             id = it,
-                            username = "bbbb",
-                            email = "bbbb@localhost",
-                            firstName = "bb",
-                            lastName = "BB",
-                            password = "bbbb2222"
+                            username = "bob",
+                            email = "bob@localhost",
+                            firstName = "Bob",
+                            lastName = "SPONGE",
+                            password = "bob1234"
                     )
                 },
                 "RRRRRRRR-RRRR-4RRR-rRRR-cccccccccccc".let {
                     it to User(
                             id = it,
-                            username = "cccc",
-                            email = "cccc@localhost",
-                            firstName = "cc",
-                            lastName = "CC",
-                            password = "cccc3333"
+                            username = "charlie",
+                            email = "charlie@localhost",
+                            firstName = "Charlie",
+                            lastName = "Brown",
+                            password = "charlie1234"
                     )
                 },
                 "RRRRRRRR-RRRR-4RRR-rRRR-dddddddddddd".let {
                     it to User(
                             id = it,
-                            username = "dddd",
-                            email = "dddd@localhost",
-                            firstName = "dd",
-                            lastName = "DD",
-                            password = "dddd4444"
+                            username = "dave",
+                            email = "dave@localhost",
+                            firstName = "Dave",
+                            lastName = "Copperfield",
+                            password = "dave1234"
                     )
                 }
         ))
