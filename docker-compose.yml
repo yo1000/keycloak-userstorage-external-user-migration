@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  keycloak:
+    build: ./keycloak-userstorage-external-user-migration
+    container_name: keycloak
+    ports:
+      - 8080:8080
+    environment:
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin1234
+    volumes:
+      - .:/tmp
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - 8025:8025
+      - 1025:1025
+  openjdk8:
+    build: ./keycloak-userstorage-external-user-api-stub
+    container_name: apistub
+    entrypoint:
+      - "java"
+      - "-jar"
+      - "/opt/keycloak-userstorage-external-user-api-stub.jar"
+    ports:
+      - 8081:8080
+#  keycloak-config-script:
+#    image: cfmanteiga/alpine-bash-curl-jq
+#    container_name: keycloak-config-script
+#    volumes:
+#      - ./kcconf.sh:/tmp/kcconf.sh
+#    entrypoint: >
+#      sh -c "sh /tmp/kcconf.sh"
