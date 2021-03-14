@@ -46,19 +46,21 @@ class MigrationUserStorageProvider(
     override fun close() {}
 
     override fun getUserByEmail(email: String, realm: RealmModel): UserModel? {
-         return findAndCreateUserModelByEmail(email, realm)
-                 ?: super.getUserByEmail(email, realm)
+        // Returning UserModel object will be saved in Keycloak userLocalStorage
+        return findAndCreateUserModelByEmail(email, realm)
+                ?: super.getUserByEmail(email, realm)
     }
 
     override fun getUserByUsername(username: String, realm: RealmModel): UserModel? {
+        // Returning UserModel object will be saved in Keycloak userLocalStorage
         return findAndCreateUserModelByUsername(username, realm)
                 ?: super.getUserByUsername(username, realm)
     }
 
-     /**
-      * @param storageId ID format is follows. "f:${componentId}:${externalId}"
-      * https://www.keycloak.org/docs/latest/server_development/#storage-ids
-      */
+    /**
+     * @param storageId ID format is follows. "f:${componentId}:${externalId}"
+     * https://www.keycloak.org/docs/latest/server_development/#storage-ids
+     */
     override fun getUserById(storageId: String, realm: RealmModel): UserModel? {
         val storageIdParts: List<String> = Regex("f:([^:]+):(.+)").find(storageId)?.groupValues
                 ?: throw IllegalArgumentException("storageId is illegal format")
@@ -70,9 +72,9 @@ class MigrationUserStorageProvider(
                 ?: super.getUserById(storageId, realm)
     }
 
-     override fun supportsCredentialType(credentialType: String): Boolean {
-         return credentialType == CredentialModel.PASSWORD
-     }
+    override fun supportsCredentialType(credentialType: String): Boolean {
+        return credentialType == CredentialModel.PASSWORD
+    }
 
     override fun isConfiguredFor(realm: RealmModel, user: UserModel, credentialType: String): Boolean {
         if (!supportsCredentialType(credentialType))
@@ -102,32 +104,35 @@ class MigrationUserStorageProvider(
             return false
 
         getPasswordCredentialProvider(keycloakSession).createCredential(realm, user, rawPassword)
+
+        // When user-federation link disposed,
+        // then imported users will not be deleted even if user-federation config is deleted
         keycloakSession.userLocalStorage().getUserById(user.id, realm).federationLink = null
         return true
     }
 
-     private fun getPasswordCredentialProvider(keycloakSession: KeycloakSession): PasswordCredentialProvider {
-         return keycloakSession.getProvider(
-                 CredentialProvider::class.java,
-                 PasswordCredentialProviderFactory.PROVIDER_ID
-         ) as PasswordCredentialProvider
-     }
+    private fun getPasswordCredentialProvider(keycloakSession: KeycloakSession): PasswordCredentialProvider {
+        return keycloakSession.getProvider(
+                CredentialProvider::class.java,
+                PasswordCredentialProviderFactory.PROVIDER_ID
+        ) as PasswordCredentialProvider
+    }
 
-     private fun findAndCreateUserModelByUsername(username: String, realm: RealmModel): UserModel? {
-         return keycloakSession.userLocalStorage().getUserByUsername(username, realm)
-                 ?: findExternalUserFromUrl("$BASE_URL/users/search?username=$username")?.let {
-                     keycloakSession.userLocalStorage().addUser(realm, it)
-                 }
-     }
+    private fun findAndCreateUserModelByUsername(username: String, realm: RealmModel): UserModel? {
+        return keycloakSession.userLocalStorage().getUserByUsername(username, realm)
+                ?: findExternalUserFromUrl("$BASE_URL/users/search?username=$username")?.let {
+                    keycloakSession.userLocalStorage().addUser(realm, it)
+                }
+    }
 
-     private fun findAndCreateUserModelByEmail(email: String, realm: RealmModel): UserModel? {
-         return keycloakSession.userLocalStorage().getUserByEmail(email, realm)
-                 ?: findExternalUserFromUrl("$BASE_URL/users/search?email=$email")?.let {
-                     keycloakSession.userLocalStorage().addUser(realm, it)
-                 }
-     }
+    private fun findAndCreateUserModelByEmail(email: String, realm: RealmModel): UserModel? {
+        return keycloakSession.userLocalStorage().getUserByEmail(email, realm)
+                ?: findExternalUserFromUrl("$BASE_URL/users/search?email=$email")?.let {
+                    keycloakSession.userLocalStorage().addUser(realm, it)
+                }
+    }
 
-     private fun findExternalUserFromUrl(url: String): ExternalUser? {
+    private fun findExternalUserFromUrl(url: String): ExternalUser? {
         return httpClient.execute(HttpGet(url).also {
             it.addHeader("Authorization", AUTHORIZATION_PHRASE)
         }).let {
@@ -149,6 +154,8 @@ class MigrationUserStorageProvider(
             userModel.isEmailVerified = true
             userModel.createdTimestamp = Time.currentTimeMillis()
 
+            // When user-federation link enabled,
+            // then continue to verify federated user credentials (call isValid method)
             userModel.federationLink = componentModel.id
         }
     }
