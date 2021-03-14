@@ -81,8 +81,8 @@ class MigrationUserStorageProvider(
         if (getPasswordCredentialProvider(keycloakSession).isConfiguredFor(realm, user, credentialType))
             return true
 
-        val foundUser: User = findUserFromUrl("$BASE_URL/users/search?username=${user.username}") ?: return false
-        return foundUser.password.isNotEmpty()
+        val foundExternalUser: ExternalUser = findExternalUserFromUrl("$BASE_URL/users/search?username=${user.username}") ?: return false
+        return foundExternalUser.password.isNotEmpty()
     }
 
     override fun isValid(realm: RealmModel, user: UserModel, credential: CredentialInput): Boolean {
@@ -95,10 +95,10 @@ class MigrationUserStorageProvider(
         val rawPassword: String = credential.value
                 ?: return false
 
-        val foundUser: User = findUserFromUrl("$BASE_URL/users/search?username=${user.username}")
+        val foundExternalUser: ExternalUser = findExternalUserFromUrl("$BASE_URL/users/search?username=${user.username}")
                 ?: return false
 
-        if (rawPassword != foundUser.password)
+        if (rawPassword != foundExternalUser.password)
             return false
 
         getPasswordCredentialProvider(keycloakSession).createCredential(realm, user, rawPassword)
@@ -115,62 +115,56 @@ class MigrationUserStorageProvider(
 
      private fun findAndCreateUserModelByUsername(username: String, realm: RealmModel): UserModel? {
          return keycloakSession.userLocalStorage().getUserByUsername(username, realm)
-                 ?: findUserFromUrl("$BASE_URL/users/search?username=$username")?.let { resp ->
-                     keycloakSession.userLocalStorage().addUser(realm, resp.username)?.also { user ->
-                         user.username = resp.username
-                         user.email = resp.email
-                         user.firstName = resp.firstName
-                         user.lastName = resp.lastName
-                         user.isEnabled = true
-                         user.isEmailVerified = true
-                         user.createdTimestamp = Time.currentTimeMillis()
-
-                         user.federationLink = componentModel.id
-                     }
+                 ?: findExternalUserFromUrl("$BASE_URL/users/search?username=$username")?.let {
+                     keycloakSession.userLocalStorage().addUser(realm, it)
                  }
      }
 
      private fun findAndCreateUserModelByEmail(email: String, realm: RealmModel): UserModel? {
          return keycloakSession.userLocalStorage().getUserByEmail(email, realm)
-                 ?: findUserFromUrl("$BASE_URL/users/search?email=$email")?.let { resp ->
-                     keycloakSession.userLocalStorage().addUser(realm, resp.username)?.also { user ->
-                         user.username = resp.username
-                         user.email = resp.email
-                         user.firstName = resp.firstName
-                         user.lastName = resp.lastName
-                         user.isEnabled = true
-                         user.isEmailVerified = true
-                         user.createdTimestamp = Time.currentTimeMillis()
-
-                         user.federationLink = componentModel.id
-                     }
+                 ?: findExternalUserFromUrl("$BASE_URL/users/search?email=$email")?.let {
+                     keycloakSession.userLocalStorage().addUser(realm, it)
                  }
      }
 
-     private fun findUserFromUrl(url: String): User? {
+     private fun findExternalUserFromUrl(url: String): ExternalUser? {
         return httpClient.execute(HttpGet(url).also {
             it.addHeader("Authorization", AUTHORIZATION_PHRASE)
         }).let {
             EntityUtils.toString(it.entity)
         }.let {
-            ObjectMapper().readValue(it, object: TypeReference<ArrayList<User>>() {}).takeIf {
+            ObjectMapper().readValue(it, object: TypeReference<ArrayList<ExternalUser>>() {}).takeIf {
                 it.isNotEmpty()
             }?.first()
         }
     }
+
+    private fun UserProvider.addUser(realm: RealmModel, externalUser: ExternalUser): UserModel? {
+        return addUser(realm, externalUser.username)?.also { userModel ->
+            userModel.username = externalUser.username
+            userModel.email = externalUser.email
+            userModel.firstName = externalUser.firstName
+            userModel.lastName = externalUser.lastName
+            userModel.isEnabled = true
+            userModel.isEmailVerified = true
+            userModel.createdTimestamp = Time.currentTimeMillis()
+
+            userModel.federationLink = componentModel.id
+        }
+    }
 }
 
-data class User @JsonCreator constructor(
+data class ExternalUser @JsonCreator constructor(
         @JsonProperty("id")
         val id: String,
         @JsonProperty("username")
         val username: String,
+        @JsonProperty("email")
+        val email: String,
         @JsonProperty("firstName")
         val firstName: String,
         @JsonProperty("lastName")
         val lastName: String,
-        @JsonProperty("email")
-        val email: String,
         @JsonProperty("password")
         val password: String
 )
